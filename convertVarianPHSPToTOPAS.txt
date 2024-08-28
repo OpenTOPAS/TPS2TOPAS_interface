@@ -1,0 +1,27 @@
+# Script to convert Varian PHSP (in IAEA format) to TOPAS PHSP
+## NameOfTheVarianPHSP and NameOfTOPASPHSP should be replaced by the correct PHSP names in your system.
+
+Ph/Default/Modules = 1 "transportation_only"
+s:So/phsp/Type = "PhaseSpace"
+s:So/phsp/Component = "source"
+s:So/phsp/PhaseSpaceFileName = "NameOfTheVarianPHSP"
+b:So/phsp/PhaseSpacePrecheck = "T"
+i:So/phsp/PhaseSpaceMultipleUse = 1
+
+s:Ge/Source/Type = "TsBox"
+s:Ge/Source/Material = "G4_AIR"
+s:Ge/Source/Parent = "World"
+d:Ge/Source/HLZ = 0.05 mm
+d:Ge/Source/HLX = 100 cm
+d:Ge/Source/HLY = 100 cm
+
+s:Sc/Dose/Quantity = "PhaseSpace"
+s:Sc/Dose/Surface = "Source/ZPlusSurface"
+s:Sc/Dose/IfOutputfileAlreadyExists = "Overwrite"
+s:Sc/Dose/OutputType = "Binary"
+s:Sc/Dose/OutputFile = "NameOfTOPASPHSP"
+b:Sc/Dose/KillAfterPhaseSpace= "True"
+
+i:Ts/NumberOfThreads = 0
+b:Ts/ShowCPUTime = "T"
+i:Ts/ShowHistoryCountAtInterval = 9000000

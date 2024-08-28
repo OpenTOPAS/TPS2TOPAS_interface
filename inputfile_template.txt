@@ -1,0 +1,11 @@
+Project name
+path to DICOM directory
+path to DICOM-structure file
+path to DICOM-dose file
+path to DICOM-RT plan file
+path to phase space file name
+MLC model: "generic", "Varian" or "VarianHD"
+Geometrical particle splitting factor (integer number)
+Scoring quantity: "DoseToWater" or "DoseToMedium
+Output file name
+Output file format: "binary", "DICOM", "csv", "root" or "xml"
