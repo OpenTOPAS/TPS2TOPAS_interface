@@ -62,7 +62,7 @@ TPS2TOPAS requires user input. Find a list of the information required:
 10. Output file name
 11. Output file format: "binary", "DICOM", "csv", "root" or "xml"
 
-"Generic" and "GenericHD" options in (7) will use the generic TsDivergingMLC TOPAS component with the specifications for the Millenium 120 MLC and Millenium 120 HDMLC, respectively (specifications from literature; see write_PCF.py for details)). "Varian" and "VarianHD" will use the TOPAS geometry extension for the Varian Millenium MLC (see deails above).
+"Generic" and "GenericHD" options in (7) will use the generic TsDivergingMLC TOPAS component with the specifications for the Millenium 120 MLC and Millenium 120 HDMLC, respectively (specifications from literature; see write_PCF.py for details). "Varian" and "VarianHD" will use the TOPAS geometry extension for the Varian Millenium MLC (see deails above).
 
 For a complete description of these parameters, please see the publication ([https://doi.org/10.1016/j.ejmp.2024.104485](https://doi.org/10.1016/j.ejmp.2024.104485)).
 
