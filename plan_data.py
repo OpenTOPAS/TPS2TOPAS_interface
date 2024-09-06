@@ -236,18 +236,18 @@ def RetrievePlanData(DATA):
                                         if not i in TsMLCX1:
                                             TsMLCX1[i] = []
                                             #MLCX1[i] = []
-                                        if DATA["MLC_model"] == "generic":
+                                        if DATA["MLC_model"] == "generic" or DATA["MLC_model"] == "generichd":
                                             MLCX1[i] = (collimator[0x300a,0x011c][i-1]/10) #in cm
-                                        if DATA["MLC_model"] == "VarianMillenium" or MLC_model == "VarianMilleniumHD":
+                                        if DATA["MLC_model"] == "VarianMillenium" or DATA["MLC_model"] == "VarianMilleniumHD":
                                             MLCX1[i] = (-collimator[0x300a,0x011c][i-1]/10) #in cm   
                                     else:
                                         i2 = str(int(i - number_of_leaves/2))
                                         if not i2 in TsMLCX2:
                                             TsMLCX2[i2] = []
                                             #MLCX2[i2] = []
-                                        if DATA["MLC_model"] == "generic":
+                                        if DATA["MLC_model"] == "generic" or DATA["MLC_model"] == "generichd":
                                             MLCX2[i2] = (collimator[0x300a,0x011c][i-1]/10) #in cm
-                                        if DATA["MLC_model"] == "VarianMillenium" or MLC_model == "VarianMilleniumHD":
+                                        if DATA["MLC_model"] == "VarianMillenium" or DATA["MLC_model"] == "VarianMilleniumHD":
                                             MLCX2[i2] = (collimator[0x300a,0x011c][i-1]/10)                                                 
                         else:
                             if collimator.RTBeamLimitingDeviceType[-1] == "X":

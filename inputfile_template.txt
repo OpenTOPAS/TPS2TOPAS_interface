@@ -4,7 +4,7 @@ path to DICOM-structure file
 path to DICOM-dose file
 path to DICOM-RT plan file
 path to phase space file name
-MLC model: "generic", "Varian" or "VarianHD"
+MLC model: "generic", "genericHD", "Varian" or "VarianHD"
 Geometrical particle splitting factor (integer number)
 Scoring quantity: "DoseToWater" or "DoseToMedium
 Output file name

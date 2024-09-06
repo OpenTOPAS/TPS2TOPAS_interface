@@ -162,7 +162,7 @@ def WritePlanParameterFile(DATA,CT_DATA,PLAN_DATA):
     parFile.write('d:Ge/PhSpY2 = 0.75 * Tf/JawY2/Value cm\n')
     parFile.write('\n')
     parFile.write('\n')
-    if DATA["MLC_model"] == "generic":
+    if DATA["MLC_model"] == "generic" or DATA["MLC_model"] == "generichd":
         parFile.write('dv:Ge/MLC/NegativeFieldSetting = 60 ')
         for i in range(1,60+1,1):
             parFile.write('Tf/MLCX1_%d/Value ' % i)
@@ -319,11 +319,18 @@ def WriteGeometryFile(DATA,ROI_DATA):
     if DATA["MLC_model"] == "VarianMillenium" or DATA["MLC_model"] == "VarianMilleniumHD":
         parFile.write('d:Ge/MLCPos/TransZ = 49.02 cm\n')
     parFile.write('\n')
-    generic_thickness   = 5.61 # cm
-    generic_distToIso   = 49.02
-    generic_SAD         = 100.0
-    generic_SUSD        = generic_SAD - generic_distToIso - generic_thickness*0.5
-    if DATA["MLC_model"] == "generic":
+    
+    if DATA["MLC_model"] == "generic" or DATA["MLC_model"] == "generichd":
+        parFile.write(' # --- %s selected\n' %(DATA["MLC_model"]))
+        parFile.write('### IMPORTANT NOTE\n')
+        parFile.write('#    generic and genericHD specifications from literature (see write_PCF.py for references)\n')
+        parFile.write('#    user: change values if more accurate data is available\n')
+        parFile.write('\n')
+        generic_thickness     = 6.7 # cm
+        genericHD_thickness   = 6.9 # cm
+        generic_distToIso     = 49.0 # cm 
+        generic_SAD           = 100.0 # cm
+        generic_SUSD          = generic_SAD - generic_distToIso - generic_thickness*0.5       
         parFile.write('s:Ge/MLC/Type = "TsDivergingMLC"\n')
         parFile.write('s:Ge/MLC/Parent = "MLCPos"\n')
         parFile.write('s:Ge/MLC/Material = "G4_W"\n')
@@ -332,19 +339,29 @@ def WriteGeometryFile(DATA,ROI_DATA):
         parFile.write('d:Ge/MLC/SAD = %s cm\n' %generic_SAD)
         parFile.write('d:Ge/MLC/SourceToUpstreamSurfaceDistance = %s cm\n' %generic_SUSD)
         parFile.write('d:Ge/MLC/DistSourceToSAD = Ge/MLC/SAD - Ge/MLC/SourceToUpstreamSurfaceDistance cm\n')
-        parFile.write('d:Ge/MLC/Thickness = %s cm\n' %generic_thickness) 
-        parFile.write('d:Ge/MLC/HalfThickness = 0.5 * Ge/MLC/Thickness cm\n')
         parFile.write('d:Ge/MLC/MaxLeafOpen = 20 cm\n')
         parFile.write('d:Ge/MLC/Length = 19 cm\n')
         parFile.write('s:Ge/MLC/LeafTravelAxis = "Xb"\n')
         parFile.write('dv:Ge/MLC/LeafWidths = 60 ')
-        for leaf_pair in range(60):
-            leaf_pair += 1
-            if leaf_pair > 10 and leaf_pair < 51: # 14 and 47 to reproduce HD120
-                parFile.write('5.0 ') # 2.5 to reproduce HD120
-            else:
-                parFile.write('10.0 ') # 5 to reproduce HD120              
-        parFile.write('mm\n')
+        if DATA["MLC_model"] == "generic":
+            for leaf_pair in range(60):
+                leaf_pair += 1
+                if leaf_pair > 10 and leaf_pair < 51: 
+                    parFile.write('5.0 ') 
+                else:
+                    parFile.write('10.0 ') 
+            parFile.write('mm\n')
+            parFile.write('d:Ge/MLC/Thickness = %s cm\n' %generic_thickness) 
+        else:
+            for leaf_pair in range(60):
+                leaf_pair += 1
+                if leaf_pair > 14 and leaf_pair < 47:
+                    parFile.write('2.5 ')
+                else:
+                    parFile.write('5.0 ')
+            parFile.write('mm\n')
+            parFile.write('d:Ge/MLC/Thickness = %s cm\n' %genericHD_thickness)  
+        parFile.write('d:Ge/MLC/HalfThickness = 0.5 * Ge/MLC/Thickness cm\n')
         parFile.write('d:Ge/MLC/TransZ = Ge/MLC/DistSourceToSAD - Ge/MLC/HalfThickness cm\n')
         parFile.write('#d:Ge/MLCPos/RotZ = -1 * Ge/Collimator_Angle deg\n')
         parFile.write('\n')
@@ -547,4 +564,10 @@ def WriteMainFile(DATA,PLAN_DATA):
     parFile.write('i:Ts/ParameterizationErrorMaxCount = 1000000000\n')
     parFile.write('i:Ts/ParameterizationErrorMaxReports = 10\n')
     parFile.write('\n')
-    
+
+# References
+# 10.1016/j.rpor.2018.09.001
+# 10.1186/1748-717X-4-22
+# 10.1002/acm2.12197
+# 10.1120/jacmp.v12i3.3475
+# https://www.oncologysystems.com/resources/linear-accelerator-guides/varian-high-energy-linear-accelerators-comparison-chart/

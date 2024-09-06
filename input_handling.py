@@ -22,8 +22,10 @@ def exitProgram():
 def EvaluateCorrectInputData(DATA):
     warnings = 0
 
-    if DATA["MLC_model"] == 'generic diverging MLC' or DATA["MLC_model"] == 'generic':
+    if DATA["MLC_model"] == 'generic diverging mlc' or DATA["MLC_model"] == 'generic':
         DATA["MLC_model"] = "generic"
+    if DATA["MLC_model"] == 'generic hd diverging mlc' or DATA["MLC_model"] == 'generichd':
+        DATA["MLC_model"] = "generichd"
     elif DATA["MLC_model"] == 'varian 120 millenium (extension required)' or DATA["MLC_model"] == 'varian':
         DATA["MLC_model"] = "VarianMillenium"
     elif DATA["MLC_model"] == 'varian 120 millenium hd (extension required)' or DATA["MLC_model"] == 'varianhd':
@@ -32,7 +34,6 @@ def EvaluateCorrectInputData(DATA):
         print("--- WARNING: No valid MLC model selected (%s) - generic divergent MLC used by default" %DATA["MLC_model"])
         DATA["MLC_model"] = "generic"
         warnings +=1
-
     if type(DATA["multipleUse"]) != 'int':
         try:
             DATA["multipleUse"] = int(DATA["multipleUse"])
@@ -114,43 +115,46 @@ def InputDataInputFileMode(inputFile):
 ############################################################################################################################################
 ############################################################################################################################################
 
-### functions to handle the GUI
-global dicomDirectoryName
-def browse_dicom_button():
-    global dicomDirectoryName 
-    filename = filedialog.askdirectory()
-    dicomDirectoryName.set(filename)
 
-global dicomStructureFileName
-def browse_dicom_structure_button():
-    global dicomStructureFileName 
-    filename = filedialog.askopenfilename() 
-    dicomStructureFileName.set(filename)
-
-global dicomDoseFileName
-def browse_dicom_dose_button():
-    global dicomDoseFileName 
-    filename = filedialog.askopenfilename() 
-    dicomDoseFileName.set(filename)
-
-global dicomRTplanFileName
-def browse_dicom_RTplan_button():
-    global dicomRTplanFileName 
-    filename = filedialog.askopenfilename() 
-    dicomRTplanFileName.set(filename)
-
-global phspFileName
-def browse_phsp_button():
-    global phspFileName 
-    filename = filedialog.askopenfilename() 
-    phspFileName.set(filename)
 
 def _quit():
     root.quit()
     root.destroy() 
 
 def InputDataInputGUIMode():
-    root = Tk()
+
+    ### functions to handle the GUI
+    global dicomDirectoryName
+    def browse_dicom_button():
+        global dicomDirectoryName 
+        filename = filedialog.askdirectory()
+        dicomDirectoryName.set(filename)
+    
+    global dicomStructureFileName
+    def browse_dicom_structure_button():
+        global dicomStructureFileName 
+        filename = filedialog.askopenfilename() 
+        dicomStructureFileName.set(filename)
+    
+    global dicomDoseFileName
+    def browse_dicom_dose_button():
+        global dicomDoseFileName 
+        filename = filedialog.askopenfilename() 
+        dicomDoseFileName.set(filename)
+    
+    global dicomRTplanFileName
+    def browse_dicom_RTplan_button():
+        global dicomRTplanFileName 
+        filename = filedialog.askopenfilename() 
+        dicomRTplanFileName.set(filename)
+    
+    global phspFileName
+    def browse_phsp_button():
+        global phspFileName 
+        filename = filedialog.askopenfilename() 
+        phspFileName.set(filename)
+    
+    global root; root = Tk()
     root.title("TPS2TOPAS Interface")
     ################
     i = 1
@@ -242,7 +246,7 @@ def InputDataInputGUIMode():
     lbl6.grid(row=i, column=1)
     MLCmodel = StringVar()
     MLCmodel.set('select')
-    options = ["generic diverging MLC", "Varian 120 Millenium (extension required)", "Varian 120 Millenium HD (extension required)"]
+    options = ["generic diverging MLC","generic HD diverging MLC", "Varian 120 Millenium (extension required)", "Varian 120 Millenium HD (extension required)"]
     MLCentry = OptionMenu(root , MLCmodel , *options)
     MLCentry.grid(row=i, column=2)
 
