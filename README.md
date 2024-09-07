@@ -1,4 +1,4 @@
-# TPS2TOPAS interface for TrueBeam systems
+# TPS2TOPAS interface for TrueBeam systems (NOT for clinical use)
 
 The Treatment Planning System (TPS) to TOPAS interface (in short, **TPS2TOPAS interface**) is a external tool to TOPAS that allows the automatic conversion of treatment plan specifications to be delivered by the Varian TrueBeam system in photon mode to ready-to-run TOPAS parameter control files (PCF) for Monte Carlo (MC) simulations.
 
