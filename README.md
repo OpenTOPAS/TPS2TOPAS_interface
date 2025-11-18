@@ -77,13 +77,13 @@ This information can be input to TPS2TOPAS in two modes: via (1) input parameter
 #### Mode 1: input file parameter.
 In this mode, an input text file with the user input informations is required. This file should contain 11 rows, each one with the information described above in the same order.
 
-To run this mode, type (double hyphen):
+To run this mode, type:
 ```
- python3 TPS2TOPAS.py --m inputfile TheNameOfYouInputFile.txt
+ python3 TPS2TOPAS.py --mode inputfile --input-file TheNameOfYouInputFile.txt
 ```
 
 > [!WARNING]
-> Replace _TheNameOfYouInputFile.txt_ by the name of your input file.
+> Replace _TheNameOfYouInputFile.txt_ by the name of your input file. The legacy form `--m inputfile TheNameOfYouInputFile.txt` is still accepted for backward compatibility.
 
 > [!TIP]
 > You can see an example of input file, called *inputfile_template.txt*, in the repository.
@@ -92,7 +92,11 @@ To run this mode, type (double hyphen):
 
 To run this mode, type:
 ```
- python3 TPS2TOPAS.py --m gui
+ python3 TPS2TOPAS.py
+```
+or, explicitly:
+```
+ python3 TPS2TOPAS.py --mode gui
 ```
 
 A GUI will pop up and you will be able to select the required parameter from _Browse_ buttons, _dropdown menus_, and _text entries_ (see the figure below). To run the script, click on _Generate TOPAS files_.
@@ -103,12 +107,19 @@ A GUI will pop up and you will be able to select the required parameter from _Br
 > This mode requires the installation of the _tkinter_ python library.
 
 > [!NOTE]
-> In both modes, if the information is not correct, _ERROR_ messages will appear in the terminal window and the PCF will not be created.
+> In both modes, if the information is not correct, _ERROR_ messages will appear in the terminal window and the PCF will not be created. Use `python3 TPS2TOPAS.py --help` to see all CLI options, including the shorthand `--version`.
 
 If the required information is correct, PCF files will be created in a directory with the name of the _Project name_ specified. 
 
 > [!NOTE]
 > TPS2TOPAS may use default values if some of the information is missing. Please check for _WARNING_ messages in the terminal window.
+
+### Regression tests
+A lightweight CLI regression test ensures future changes do not break the modes above. Run it with:
+```
+python3 -m unittest tests/test_cli_smoke.py
+```
+This covers the GUI default, input-file requirements, invalid argument combinations, and the legacy positional syntax compatibility.
 
 ## ... and to run the PCF in TOPAS
 Once the PCF are created you will be able to run them with TOPAS. The PCF to run is called _Main.txt_. Just for visualization, you can run *Main_with_Visualization.txt*, but we strongly DO NOT recommend to run this file for the whole simulation.

@@ -1,0 +1,11 @@
+Sample Project
+/path/to/dicom
+/path/to/rs.dcm
+/path/to/rd.dcm
+/path/to/rp.dcm
+/path/to/phsp.phsp
+generic
+1
+DoseToWater
+output_file
+binary

@@ -20,10 +20,13 @@
       13 June 2024 - released version (v1.0)
 """
 
+import argparse
+import pathlib
+import sys
+
 from input_handling import *
 from plan_data import *
 from write_PCF import *
-import sys
 
 ############################################################################################################################################
 ############################################################################################################################################
@@ -31,23 +34,40 @@ import sys
 ############################################################################################################################################
 ############################################################################################################################################
 
-def printHelp():
-    print('Use: TPS2TOPAS.py --m [mode] [parameterFile]')
-    print(' Parameters:')
-    print('   mode: gui or inputfile ')
-    print('   parameterFile: ONLY IF "inputfile" mode selected: txt file including:')
-    print('                 (1) Project name')
-    print('                 (2) path to DICOM directory')
-    print('                 (3) path to DICOM-structure file')
-    print('                 (4) path to DICOM-dose file')
-    print('                 (5) path to DICOM-RT plan file')
-    print('                 (6) path to phase space file name')
-    print('                 (7) MLC model: "generic", "Varian" or "VarianHD"')
-    print('                 (8) Geometrical particle splitting factor (integer number)')
-    print('                 (9) Scoring quantity: "DoseToWater" or "DoseToMedium')
-    print('                (10) Output file name')
-    print('                (11) Output file format: "binary", "DICOM", "csv", "root" or "xml"')
-    exitProgram()
+def build_argument_parser():
+    description = (
+        "Convert Varian TrueBeam treatment plans into TOPAS-ready parameter control files.\n"
+        "Use GUI mode for interactive entry or inputfile mode for scripted conversions."
+    )
+    parser = argparse.ArgumentParser(
+        prog="TPS2TOPAS.py",
+        description=description,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "-m",
+        "--mode",
+        choices=["gui", "inputfile"],
+        default="gui",
+        help="Run the GUI (default) or provide parameters via an input file.",
+    )
+    parser.add_argument(
+        "-i",
+        "--input-file",
+        metavar="PATH",
+        help="Path to the 11-line parameter file (required for inputfile mode).",
+    )
+    parser.add_argument(
+        "legacy_input_file",
+        nargs="?",
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="TPS2TOPAS interface v1.0",
+    )
+    return parser
 
 ############################################################################################################################################
 ############################################################################################################################################
@@ -55,53 +75,24 @@ def printHelp():
 ############################################################################################################################################
 ############################################################################################################################################
 
-def EvaluateCorrectInitialization():
-    narg = len(sys.argv)
-    if narg == 1:
-        print("###### \n ERROR! incorrect use \n ######")
-        printHelp()
-        exitProgram()
-    
-    for i in range(narg):
-        option = sys.argv[i].lower()
-        if '--' in option:
-            if option == '--help' or option == '--h':
-                    printHelp()
-            elif option == '--m':
-                    if sys.argv[i+1] == 'gui':
-                        mode = 'gui'
-                        inputFile = ''
-                    elif sys.argv[i+1] == 'inputfile':
-                        mode = 'file'
-                        try:
-                            inputFile = sys.argv[i+2]
-                        except:
-                            print("###### \n ERROR! a parameter file is required in mode 'inputfile' \n ######")
-                            printHelp()
-                            exitProgram()
-                        try:
-                            f = open(inputFile, "r")
-                        except:
-                            print("###### \n ERROR! file not found \n######")
-                            exitProgram()
-                        f.close()
-                    else: 
-                        print("###### \n ERROR! Please use a valid mode \n######")
-                        printHelp()
-            else:
-                print("###### \n ERROR! %s incorrect use \n######" % sys.argv[i])
-                printHelp()
-                exitProgram()
-    return mode, inputFile
+def parse_cli_arguments(argv=None):
+    parser = build_argument_parser()
+    args = parser.parse_args(argv)
 
-############################################################################################################################################
-############################################################################################################################################
-############################################################################################################################################
-############################################################################################################################################
-############################################################################################################################################
+    mode = args.mode.lower()
+    legacy_file = args.input_file or args.legacy_input_file
 
-def exitProgram():
-    sys.exit(1)
+    if mode == "inputfile":
+        if not legacy_file:
+            parser.error("inputfile mode requires --input-file PATH.")
+        input_path = pathlib.Path(legacy_file).expanduser()
+        if not input_path.exists():
+            parser.error(f"Input file not found: {input_path}")
+        return "file", str(input_path)
+
+    if args.input_file or args.legacy_input_file:
+        parser.error("An input file may only be supplied when --mode inputfile is selected.")
+    return "gui", ""
 
 ############################################################################################################################################
 ############################################################################################################################################
@@ -111,13 +102,19 @@ def exitProgram():
 
 def main():
     # Initialization
-    mode, inputFile = EvaluateCorrectInitialization()
+    mode, inputFile = parse_cli_arguments()
 
     # Read data
     if mode == 'gui':
         DATA = InputDataInputGUIMode()
     if mode == 'file':
-        DATA = InputDataInputFileMode(inputFile)
+        try:
+            DATA = InputDataInputFileMode(inputFile)
+        except ValueError as exc:
+            print("######")
+            print(f" ERROR! {exc}")
+            print("######")
+            sys.exit(1)
 
     # Create the project directory
     os.system('mkdir %s' %DATA["project_name"])
@@ -125,14 +122,18 @@ def main():
     os.system('cp HUtoMaterialSchneider.txt %s' %DATA["project_name"])
 
     # Retrieve data from files exported from TPS
-    CT_DATA = RetrieveCTData(DATA)
+    if DATA["score_phase_space"]:
+        CT_DATA = {"cx": 0.0, "cy": 0.0, "cz": 0.0}
+        ROI_DATA = {"materials": {}, "elements": {}, "roiWithMaterials": {}}
+    else:
+        CT_DATA = RetrieveCTData(DATA)
+        ROI_DATA = RetrieveROIData(DATA)
     PLAN_DATA = RetrievePlanData(DATA)
-    ROI_DATA = RetrieveROIData(DATA) 
 
     # Write PCF
     WriteTimeFeaturesPCF(DATA,PLAN_DATA)
     WritePlanParameterFile(DATA,CT_DATA,PLAN_DATA)
-    WriteGeometryFile(DATA,ROI_DATA)
+    WriteGeometryFile(DATA,ROI_DATA,CT_DATA)
     WriteMainWithVisualizationFile(DATA)
     WriteMainFile(DATA,PLAN_DATA)
 

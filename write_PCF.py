@@ -131,8 +131,11 @@ def WritePlanParameterFile(DATA,CT_DATA,PLAN_DATA):
     parFile.write('includeFile = Isocenter_TimeFeatures.txt\n')
     parFile.write('includeFile = CalibrationFactor_TimeFeatures.txt\n')
     parFile.write('\n')
-    parFile.write('s:RS/DicomDirectory = \"%s\"\n' % DATA["dicom_dirname"]) 
-    parFile.write('s:RS/DicomDoseFileName = \"%s\"\n' % DATA["RD_filename"]) 
+    if DATA.get("score_phase_space"):
+        parFile.write('# Phase-space scoring mode: No DICOM inputs required\n')
+    else:
+        parFile.write('s:RS/DicomDirectory = \"%s\"\n' % DATA["dicom_dirname"]) 
+        parFile.write('s:RS/DicomDoseFileName = \"%s\"\n' % DATA["RD_filename"]) 
     parFile.write('d:Tf/VirtualSimulationTimeEnd = %1.2f s\n' % (PLAN_DATA["finalTime"]-1))
     parFile.write('i:Tf/VirtualSimulationNumberOfSequentialTimes = %d\n' % int(PLAN_DATA["finalTime"]-1))
     parFile.write('\n') 
@@ -188,66 +191,87 @@ def WritePlanParameterFile(DATA,CT_DATA,PLAN_DATA):
 ############################################################################################################################################
 ############################################################################################################################################
 
-def WriteGeometryFile(DATA,ROI_DATA):
+def WriteGeometryFile(DATA,ROI_DATA,CT_DATA):
     directory = DATA["project_name"]  
     # Geometry
     parFile = open('./%s/Geometry.txt'%(directory),'w')
     parFile.write('#\n')
-    parFile.write('includeFile = planParameters.txt HUtoMaterialSchneider.txt\n')
-    parFile.write('\n')
-    parFile.write('###################################################\n')
-    parFile.write('#  Materials\n')
-    parFile.write('####################################################\n')
-    for name, material in ROI_DATA["materials"].items():
-        if ' ' in name:
-            name = name.replace(' ','_')
-        if '.' in name:
-            name = name.replace('.','_')
-        n = len(material[0])
-        parFile.write('sv:Ma/%s/Components = %d ' % (name, n))
-        for i in range(n):
-            parFile.write('"%s" ' % ROI_DATA["elements"][material[0][i]])
+    if DATA.get("score_phase_space"):
+        parFile.write('includeFile = planParameters.txt\n')
         parFile.write('\n')
-    
-        parFile.write('uv:Ma/%s/Fractions = %d ' % (name, n))
-        for i in range(n):
-            parFile.write('%f ' % material[1][i])
+        parFile.write('###################################################\n')
+        parFile.write('#  Phase-space scoring cylinder\n')
+        parFile.write('####################################################\n')
+        parFile.write('s:Ge/Patient/Parent   = "DICOM_to_IEC"\n')
+        parFile.write('s:Ge/Patient/Type     = "TsCylinder"\n')
+        parFile.write('s:Ge/Patient/Material = "Air"\n')
+        parFile.write('d:Ge/Patient/RMin     = 0 cm\n')
+        parFile.write('d:Ge/Patient/RMax     = 50 cm\n')
+        parFile.write('d:Ge/Patient/HL       = 25 cm\n')
+        parFile.write('d:Ge/Patient/RotX     = 0.0 deg\n')
+        parFile.write('d:Ge/Patient/RotY     = 0.0 deg\n')
+        parFile.write('d:Ge/Patient/RotZ     = 0.0 deg\n')
+        parFile.write('d:Ge/Patient/TransX   = 0 cm\n')
+        parFile.write('d:Ge/Patient/TransY   = 0 cm\n')
+        parFile.write('d:Ge/Patient/TransZ   = 0 cm\n')
+        parFile.write('s:Ge/Patient/Color    = "cyan"\n')
+        parFile.write('s:Ge/Patient/DrawingStyle = "WireFrame"\n')
+    else:
+        parFile.write('includeFile = planParameters.txt HUtoMaterialSchneider.txt\n')
         parFile.write('\n')
-    
-        parFile.write('d:Ma/%s/Density = %f g/cm3\n' % (name, material[2]))
-        parFile.write('d:Ma/%s/MeanExcitationEnergy = %f eV\n' % (name, material[3]))
-    parFile.write('\n')
-    parFile.write('###################################################\n')
-    parFile.write('#  Patient in DICOM\n')
-    parFile.write('####################################################\n')
-    parFile.write('s:Ge/Patient/Parent   = "DICOM_to_IEC"\n')
-    parFile.write('s:Ge/Patient/Type     = "TsDicomPatient"\n')
-    parFile.write('s:Ge/Patient/Material = "G4_WATER"\n')
-    parFile.write('d:Ge/Patient/RotX     = 0.0 deg\n')
-    parFile.write('d:Ge/Patient/RotY     = 0.0 deg\n')
-    parFile.write('d:Ge/Patient/RotZ     = 0.0 deg\n')
-    parFile.write('d:Ge/Patient/TransX   = 0 cm  \n')
-    parFile.write('d:Ge/Patient/TransY   = 0 cm \n')
-    parFile.write('d:Ge/Patient/TransZ   = 0 cm \n')
-    parFile.write('s:Ge/Patient/HUtoMaterialConversionMethod = "Schneider"\n')
-    parFile.write('s:Ge/Patient/DicomDirectory      = RS/DicomDirectory \n')
-    parFile.write('b:Ge/Patient/IgnoreInconsistentFrameOfReferenceUID = "True"\n')
-    parFile.write('sv:Ge/Patient/DicomModalityTags = 1 "CT"\n')
-    parFile.write('iv:Ge/Patient/ShowSpecificSlicesZ = 1 33 \n')
-    parFile.write('s:Ge/Patient/CloneRTDoseGridFrom = RS/DicomDoseFileName \n')
-    if len(ROI_DATA["roiWithMaterials"]) > 0:
-        parFile.write('sv:Ge/Patient/MaterialByRTStructNames = %d ' %  len(ROI_DATA["roiWithMaterials"]))
-        for roi, name in ROI_DATA["roiWithMaterials"].items(): 
-            parFile.write('"'+roi+'" ')
-        parFile.write('\n')
-        parFile.write('sv:Ge/Patient/MaterialByRTStructMaterials = %d ' % len(ROI_DATA["roiWithMaterials"])) 
-        for roi, name in ROI_DATA["roiWithMaterials"].items():
+        parFile.write('###################################################\n')
+        parFile.write('#  Materials\n')
+        parFile.write('####################################################\n')
+        for name, material in ROI_DATA["materials"].items():
             if ' ' in name:
                 name = name.replace(' ','_')
             if '.' in name:
                 name = name.replace('.','_')
-            parFile.write('"'+name+'" ')
+            n = len(material[0])
+            parFile.write('sv:Ma/%s/Components = %d ' % (name, n))
+            for i in range(n):
+                parFile.write('"%s" ' % ROI_DATA["elements"][material[0][i]])
+            parFile.write('\n')
+    
+            parFile.write('uv:Ma/%s/Fractions = %d ' % (name, n))
+            for i in range(n):
+                parFile.write('%f ' % material[1][i])
+            parFile.write('\n')
+    
+            parFile.write('d:Ma/%s/Density = %f g/cm3\n' % (name, material[2]))
+            parFile.write('d:Ma/%s/MeanExcitationEnergy = %f eV\n' % (name, material[3]))
         parFile.write('\n')
+        parFile.write('###################################################\n')
+        parFile.write('#  Patient in DICOM\n')
+        parFile.write('####################################################\n')
+        parFile.write('s:Ge/Patient/Parent   = "DICOM_to_IEC"\n')
+        parFile.write('s:Ge/Patient/Type     = "TsDicomPatient"\n')
+        parFile.write('s:Ge/Patient/Material = "G4_WATER"\n')
+        parFile.write('d:Ge/Patient/RotX     = 0.0 deg\n')
+        parFile.write('d:Ge/Patient/RotY     = 0.0 deg\n')
+        parFile.write('d:Ge/Patient/RotZ     = 0.0 deg\n')
+        parFile.write('d:Ge/Patient/TransX   = 0 cm  \n')
+        parFile.write('d:Ge/Patient/TransY   = 0 cm \n')
+        parFile.write('d:Ge/Patient/TransZ   = 0 cm \n')
+        parFile.write('s:Ge/Patient/HUtoMaterialConversionMethod = "Schneider"\n')
+        parFile.write('s:Ge/Patient/DicomDirectory      = RS/DicomDirectory \n')
+        parFile.write('b:Ge/Patient/IgnoreInconsistentFrameOfReferenceUID = "True"\n')
+        parFile.write('sv:Ge/Patient/DicomModalityTags = 1 "CT"\n')
+        parFile.write('iv:Ge/Patient/ShowSpecificSlicesZ = 1 33 \n')
+        parFile.write('s:Ge/Patient/CloneRTDoseGridFrom = RS/DicomDoseFileName \n')
+        if len(ROI_DATA["roiWithMaterials"]) > 0:
+            parFile.write('sv:Ge/Patient/MaterialByRTStructNames = %d ' %  len(ROI_DATA["roiWithMaterials"]))
+            for roi, name in ROI_DATA["roiWithMaterials"].items(): 
+                parFile.write('"'+roi+'" ')
+            parFile.write('\n')
+            parFile.write('sv:Ge/Patient/MaterialByRTStructMaterials = %d ' % len(ROI_DATA["roiWithMaterials"])) 
+            for roi, name in ROI_DATA["roiWithMaterials"].items():
+                if ' ' in name:
+                    name = name.replace(' ','_')
+                if '.' in name:
+                    name = name.replace('.','_')
+                parFile.write('"'+name+'" ')
+            parFile.write('\n')
       
     # Global control parameter files
     parFile.write('\n')
@@ -423,13 +447,16 @@ def WriteMainWithVisualizationFile(DATA):
     parFile.write('u:Gr/ViewA/Zoom           = 1.\n')
     parFile.write('i:Gr/ShowOnlyOutlineIfVoxelCountExceeds = 100000000\n')
     parFile.write('\n')
-    parFile.write('# Select a specific dicom slice to show\n')
-    parFile.write('#iv:Ge/Patient/ShowSpecificSlicesX = 1 -1\n')
-    parFile.write('#iv:Ge/Patient/ShowSpecificSlicesY = 1 -1\n')
-    parFile.write('iv:Ge/Patient/ShowSpecificSlicesZ = 1 -1\n')
-    parFile.write('\n')
-    parFile.write('# comment the follow line in Geometry.txt to avoid displaying the RT Dose Grid\n')
-    parFile.write('#s:Ge/Patient/CloneRTDoseGridFrom = RS/DicomDoseFileName \n')
+    if not DATA.get("score_phase_space"):
+        parFile.write('# Select a specific dicom slice to show\n')
+        parFile.write('#iv:Ge/Patient/ShowSpecificSlicesX = 1 -1\n')
+        parFile.write('#iv:Ge/Patient/ShowSpecificSlicesY = 1 -1\n')
+        parFile.write('iv:Ge/Patient/ShowSpecificSlicesZ = 1 -1\n')
+        parFile.write('\n')
+        parFile.write('# comment the follow line in Geometry.txt to avoid displaying the RT Dose Grid\n')
+        parFile.write('#s:Ge/Patient/CloneRTDoseGridFrom = RS/DicomDoseFileName \n')
+    else:
+        parFile.write('# Phase-space scoring mode: DICOM slice controls not applicable\n')
     parFile.close()
 
 def WriteMainFile(DATA,PLAN_DATA):
@@ -546,14 +573,25 @@ def WriteMainFile(DATA,PLAN_DATA):
     parFile.write('b:So/phsp/LimitedAssumeFirstParticleIsNewHistory = "True" #if IAEA phsp\n') 
     parFile.write('b:So/phsp/LimitedAssumePhotonIsNewHistory = "True" #if IAEA phsp\n') 
     parFile.write('\n')
-    parFile.write('s:Sc/Dose/Quantity = "%s" \n' % (DATA["scoring_quantity"]))
-    parFile.write('u:Sc/Dose/OutputWeightingFactor = So/ScalingFactor\n')
-    parFile.write('b:Sc/Dose/PreCalculateStoppingPowerRatios = "True"\n')
-    parFile.write('s:Sc/Dose/Component = "Patient/RTDoseGrid" \n')
-    parFile.write('s:Sc/Dose/IfOutputfileAlreadyExists = "Overwrite"\n')
-    parFile.write('s:Sc/Dose/OutputType = "%s" \n' % DATA["output_format"])
-    parFile.write('s:Sc/Dose/OutputFile = "./output/%s" \n' % (DATA["output_file"]))
-    parFile.write('\n')
+    if DATA.get("score_phase_space"):
+        parFile.write('s:Sc/PhaseSpace/Quantity = "PhaseSpace" \n')
+        parFile.write('s:Sc/PhaseSpace/Component = "Patient"\n')
+        parFile.write('s:Sc/PhaseSpace/Surface = "Patient/RMaxSurface"\n')
+        parFile.write('s:Sc/PhaseSpace/OnlyIncludeParticlesGoing = "In"\n')
+        parFile.write('b:Sc/PhaseSpace/KillAfterPhaseSpace = "True"\n')
+        parFile.write('s:Sc/PhaseSpace/IfOutputFileAlreadyExists = "Overwrite"\n')
+        parFile.write('s:Sc/PhaseSpace/OutputType = "ASCII"\n')
+        parFile.write('s:Sc/PhaseSpace/OutputFile = "./output/%s"\n' % DATA["output_file"])
+        parFile.write('\n')
+    else:
+        parFile.write('s:Sc/Dose/Quantity = "%s" \n' % (DATA["scoring_quantity"]))
+        parFile.write('u:Sc/Dose/OutputWeightingFactor = So/ScalingFactor\n')
+        parFile.write('b:Sc/Dose/PreCalculateStoppingPowerRatios = "True"\n')
+        parFile.write('s:Sc/Dose/Component = "Patient/RTDoseGrid" \n')
+        parFile.write('s:Sc/Dose/IfOutputfileAlreadyExists = "Overwrite"\n')
+        parFile.write('s:Sc/Dose/OutputType = "%s" \n' % DATA["output_format"])
+        parFile.write('s:Sc/Dose/OutputFile = "./output/%s" \n' % (DATA["output_file"]))
+        parFile.write('\n')
     parFile.write('d:Tf/TimeLineEnd = Tf/VirtualSimulationTimeEnd s\n')
     parFile.write('i:Tf/NumberOfSequentialTimes = Tf/VirtualSimulationNumberOfSequentialTimes\n')
     parFile.write('i:Ts/Seed = 1\n')

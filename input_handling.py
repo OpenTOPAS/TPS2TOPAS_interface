@@ -4,6 +4,8 @@ from tkinter import filedialog
 from tkinter import *
 import sys
 
+GUI_CONFIRMED = False
+
 ############################################################################################################################################
 ############################################################################################################################################
 ############################################################################################################################################
@@ -21,6 +23,10 @@ def exitProgram():
 
 def EvaluateCorrectInputData(DATA):
     warnings = 0
+
+    DATA["score_phase_space"] = False
+
+    DATA["score_phase_space"] = False
 
     if DATA["MLC_model"] == 'generic diverging mlc' or DATA["MLC_model"] == 'generic':
         DATA["MLC_model"] = "generic"
@@ -42,9 +48,13 @@ def EvaluateCorrectInputData(DATA):
             DATA["multipleUse"] = 1
             warnings +=1
 
-    if DATA["scoring_quantity"] == 'dosetowater':
+    scoring_value = DATA["scoring_quantity"]
+    if scoring_value in ['phasespace', 'phase_space', 'phase-space']:
+        DATA["score_phase_space"] = True
+        DATA["scoring_quantity"] = "PhaseSpace"
+    elif scoring_value == 'dosetowater':
         DATA["scoring_quantity"] = "DoseToWater"
-    elif DATA["scoring_quantity"] == 'dosetomedium':
+    elif scoring_value == 'dosetomedium':
         DATA["scoring_quantity"] = "DoseToMedium"
     else:
         print("--- WARNING: No valid scoring quantity selected (%s) - DoseToMedium used by default" %DATA["scoring_quantity"])
@@ -86,11 +96,7 @@ def InputDataInputFileMode(inputFile):
     inputInfo = open(inputFile,'r').read().split('\n')
     inputInfo = list(filter(None, inputInfo)) # filter empty lines
     if len(inputInfo) != 11:
-        print("######")
-        print('ERROR! %s arguments found in input file. %s arguments required' %(len(inputInfo),11))
-        print("######")
-        printHelp()
-        exit(0)
+        raise ValueError("%s arguments found in input file. %s arguments required" %(len(inputInfo),11))
     
     DATA = {}
     project_name_temp = inputInfo[0]
@@ -118,6 +124,8 @@ def InputDataInputFileMode(inputFile):
 
 
 def _quit():
+    global GUI_CONFIRMED
+    GUI_CONFIRMED = True
     root.quit()
     root.destroy() 
 
@@ -154,8 +162,14 @@ def InputDataInputGUIMode():
         filename = filedialog.askopenfilename() 
         phspFileName.set(filename)
     
+    def cancel_gui():
+        print("\n--- GUI closed before generating TOPAS files. Exiting.")
+        root.destroy()
+        sys.exit(0)
+
     global root; root = Tk()
     root.title("TPS2TOPAS Interface")
+    root.protocol("WM_DELETE_WINDOW", cancel_gui)
     ################
     i = 1
     label0=StringVar()
@@ -275,7 +289,7 @@ def InputDataInputGUIMode():
     lbl8.grid(row=i, column=1)
     Scoring = StringVar()
     Scoring.set('select')
-    options = ["DoseToWater", "DoseToMedium"]
+    options = ["DoseToWater", "DoseToMedium", "PhaseSpace"]
     scoringentry = OptionMenu(root , Scoring , *options)
     scoringentry.grid(row=i, column=2)
 
@@ -326,6 +340,10 @@ def InputDataInputGUIMode():
     lbl12.grid(row=i+1, column=2)
     ################
     mainloop()
+
+    if not GUI_CONFIRMED:
+        print("\n--- GUI closed before generating TOPAS files. Exiting.")
+        sys.exit(0)
      
     DATA = {}
     project_name_temp = projectName.get()
@@ -343,5 +361,3 @@ def InputDataInputGUIMode():
     DATA["output_format"]    = outputFormat.get().lower()
 
     return EvaluateCorrectInputData(DATA)
-
-
