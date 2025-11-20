@@ -30,7 +30,7 @@ def EvaluateCorrectInputData(DATA):
 
     if DATA["MLC_model"] == 'generic diverging mlc' or DATA["MLC_model"] == 'generic':
         DATA["MLC_model"] = "generic"
-    if DATA["MLC_model"] == 'generic hd diverging mlc' or DATA["MLC_model"] == 'generichd':
+    elif DATA["MLC_model"] == 'generic hd diverging mlc' or DATA["MLC_model"] == 'generichd':
         DATA["MLC_model"] = "generichd"
     elif DATA["MLC_model"] == 'varian 120 millenium (extension required)' or DATA["MLC_model"] == 'varian':
         DATA["MLC_model"] = "VarianMillenium"
