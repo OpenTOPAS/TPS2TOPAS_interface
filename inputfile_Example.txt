@@ -1,0 +1,14 @@
+
+Test
+windows
+C:/DICOM_dir_file_path/
+C:/DICOM_dir_file_path/RTst_file.dcm
+C:/DICOM_dir_file_path/RT_dose_file.dcm
+C:/DICOM_dir_file_path/RT_plan_file.dcm
+C:/phase_space_file_path/phasespace_file.dcm
+genericHD
+1
+PhaseSpace
+output
+ASCII
+GTV04_L_TEMP, GTV05_R_CER, GTV03_L_FR
