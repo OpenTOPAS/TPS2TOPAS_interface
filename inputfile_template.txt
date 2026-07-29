@@ -1,4 +1,5 @@
 Project name
+Operating System: "linux/macos" or "windows"
 path to DICOM directory
 path to DICOM-structure file
 path to DICOM-dose file

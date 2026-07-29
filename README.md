@@ -120,3 +120,8 @@ For instructions on how to run TOPAS, please see the user guide of OpenTOPAS (op
 
 > [!WARNING]
 > The calculation of dose distributions in TOPAS relies on a calibration factor, dependent on the beam energy, that relates the dose per primary history in the simulation to the dose per MU (i.e., calibration factor of the system). This calibration factor may need to be modified if the calibration method employed at your institution is different from the implemented by default in TPS2TOPAS (see [https://doi.org/10.1016/j.ejmp.2024.104485](https://doi.org/10.1016/j.ejmp.2024.104485)) or the phsp files used are different from the recommended ones. Note that the calibration factors included in this version of TPS2TOPAS are for 6MV and 10MV (**not FFF**) beams. 
+
+
+
+## Updates by Justin Stanton-Sheetz
+Updated to add PhaseSpace scoring and also WSL compatability for those storing files in different drives than running TOPAS

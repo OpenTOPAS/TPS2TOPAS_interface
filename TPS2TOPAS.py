@@ -121,8 +121,16 @@ def main():
 
     # Create the project directory
     os.system('mkdir %s' %DATA["project_name"])
-    os.system('mkdir %s/output' %DATA["project_name"])
-    os.system('cp HUtoMaterialSchneider.txt %s' %DATA["project_name"])
+    if DATA["OS"] == "linux/macos":
+        os.system('mkdir %s/output' %DATA["project_name"]) 
+        os.system('cp HUtoMaterialSchneider.txt %s' %DATA["project_name"]) 
+    elif DATA["OS"] == "windows":
+        os.system('mkdir %s\\output' %DATA["project_name"]) 
+        os.system('copy HUtoMaterialSchneider.txt %s' %DATA["project_name"]) #Changed cp to copy for windows
+    else:
+        print('OS selection error. Linux/MacOS assumed')
+        os.system('mkdir %s/output' %DATA["project_name"]) 
+        os.system('cp HUtoMaterialSchneider.txt %s' %DATA["project_name"]) 
 
     # Retrieve data from files exported from TPS
     CT_DATA = RetrieveCTData(DATA)

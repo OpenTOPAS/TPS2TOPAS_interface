@@ -1,4 +1,5 @@
 import pathlib
+import wslPath
 
 ############################################################################################################################################
 ############################################################################################################################################
@@ -131,8 +132,23 @@ def WritePlanParameterFile(DATA,CT_DATA,PLAN_DATA):
     parFile.write('includeFile = Isocenter_TimeFeatures.txt\n')
     parFile.write('includeFile = CalibrationFactor_TimeFeatures.txt\n')
     parFile.write('\n')
-    parFile.write('s:RS/DicomDirectory = \"%s\"\n' % DATA["dicom_dirname"]) 
-    parFile.write('s:RS/DicomDoseFileName = \"%s\"\n' % DATA["RD_filename"]) 
+    if DATA["OS"] == "linux/macos":
+        parFile.write('s:RS/DicomDirectory = \"%s\"\n' % DATA["dicom_dirname"]) 
+        parFile.write('s:RS/DicomDoseFileName = \"%s\"\n' % DATA["RD_filename"]) 
+    elif DATA["OS"] == "windows":
+        windows_dicom_dir = DATA["dicom_dirname"]
+        windows_dicom_dir = windows_dicom_dir.replace('/', '\\')
+        dicom_dir = wslPath.to_posix(windows_dicom_dir)
+        windows_dose_file = DATA["RD_filename"]
+        windows_dose_file = windows_dose_file.replace('/','\\')
+        dose_file = wslPath.to_posix(windows_dose_file)
+        parFile.write('s:RS/DicomDirectory = \"%s\"\n' % dicom_dir) 
+        parFile.write('s:RS/DicomDoseFileName = \"%s\"\n' % dose_file) 
+        
+    else:
+        print('OS selection error. Dicom and dose file names left blank')
+        parFile.write('s:RS/DicomDirectory = \"%s\"\n') 
+        parFile.write('s:RS/DicomDoseFileName = \"%s\"\n') 
     parFile.write('d:Tf/VirtualSimulationTimeEnd = %1.2f s\n' % (PLAN_DATA["finalTime"]-1))
     parFile.write('i:Tf/VirtualSimulationNumberOfSequentialTimes = %d\n' % int(PLAN_DATA["finalTime"]-1))
     parFile.write('\n') 
@@ -416,7 +432,10 @@ def WriteMainWithVisualizationFile(DATA):
     parFile.write('s:Gr/ViewA/Type        = "OpenGL"\n')
     parFile.write('i:Gr/ViewA/WindowSizeX = 900\n')
     parFile.write('i:Gr/ViewA/WindowSizeY = 900\n')
-    parFile.write('d:Gr/ViewA/Theta          = 89.9 deg\n')
+    if DATA['scoring_quantity'] == 'phasespace':
+        parFile.write('d:Gr/ViewA/Theta          = 0 deg\n')
+    else:
+        parFile.write('d:Gr/ViewA/Theta          = 89.9 deg\n')
     parFile.write('d:Gr/ViewA/Phi            = -90 deg\n')
     parFile.write('b:Gr/ViewA/IncludeAxes    = "true"\n')
     parFile.write('d:Gr/ViewA/AxesSize       = 100 cm \n')
@@ -427,6 +446,29 @@ def WriteMainWithVisualizationFile(DATA):
     parFile.write('#iv:Ge/Patient/ShowSpecificSlicesX = 1 -1\n')
     parFile.write('#iv:Ge/Patient/ShowSpecificSlicesY = 1 -1\n')
     parFile.write('iv:Ge/Patient/ShowSpecificSlicesZ = 1 -1\n')
+    if DATA['scoring_quantity'] == 'phasespace':
+        parFile.write('# Show structures you want to score\n')
+        if DATA["OS"] == "linux/macos":
+            parFile.write('s:Ge/Patient/DicomRTStructFile = "%s"\n') %DATA["RS_filename"]
+        elif DATA["OS"] == "windows":
+            windows_RS_file = DATA["RS_filename"]
+            windows_RS_file = windows_RS_file.replace('/', '\\')
+            RS_file = wslPath.to_posix(windows_RS_file) 
+            parFile.write('s:Ge/Patient/DicomRTStructFile = "%s"\n'%RS_file) 
+        else:
+            parFile.write('s:Ge/Patient/DicomRTStructFile = "%s"\n') %DATA["RS_filename"]
+        roi_list = str(DATA["ROIs_to_score"])
+        roi_list = roi_list.replace('[','')
+        roi_list = roi_list.replace(']','')
+        parFile.write('sv:Ge/Patient/ColorByRTStructNames = %d %s \n'%(len(DATA["ROIs_to_score"]), roi_list))
+        color_list = ''
+        for color in range(0,len(DATA["ROIs_to_score"]),1):
+            if color != len(DATA["ROIs_to_score"])-1:
+                color_list += '"yellow", '
+            else:
+                color_list += '"yellow"'
+        parFile.write('sv:Ge/Patient/ColorByRTStructColors = %d %s\n'%(len(DATA["ROIs_to_score"]),color_list))
+        parFile.write('\n')
     parFile.write('\n')
     parFile.write('# comment the follow line in Geometry.txt to avoid displaying the RT Dose Grid\n')
     parFile.write('#s:Ge/Patient/CloneRTDoseGridFrom = RS/DicomDoseFileName \n')
@@ -539,21 +581,44 @@ def WriteMainFile(DATA,PLAN_DATA):
     parFile.write('\n')
     parFile.write('s:So/phsp/Type = "PhaseSpace"\n')
     parFile.write('s:So/phsp/Component = "source"\n')
-    parFile.write('s:So/phsp/PhaseSpaceFileName = "%s"\n' % DATA["phsp_filename"])
+    if DATA["OS"] == "linux/macos":
+        parFile.write('s:So/phsp/PhaseSpaceFileName = "%s"\n' % DATA["phsp_filename"])
+    elif DATA["OS"] == "windows":
+        windows_PHSP_file = DATA["phsp_filename"]
+        windows_PHSP_file = windows_PHSP_file.replace('/', '\\')
+        PHSP_file = wslPath.to_posix(windows_PHSP_file) 
+        parFile.write('s:So/phsp/PhaseSpaceFileName = "%s"\n'%PHSP_file) 
+    else:
+        parFile.write('s:So/phsp/PhaseSpaceFileName = "%s"\n' % DATA["phsp_filename"])
     parFile.write('b:So/phsp/PhaseSpacePrecheck = "F"\n')
     parFile.write('i:So/phsp/PhaseSpaceMultipleUse = 0\n')
     parFile.write('i:So/phsp/NumberOfHistoriesInRun = Tf/PrimariesPerSegment/Value #10 * Ts/ShowHistoryCountAtInterval\n') 
     parFile.write('b:So/phsp/LimitedAssumeFirstParticleIsNewHistory = "True" #if IAEA phsp\n') 
     parFile.write('b:So/phsp/LimitedAssumePhotonIsNewHistory = "True" #if IAEA phsp\n') 
     parFile.write('\n')
-    parFile.write('s:Sc/Dose/Quantity = "%s" \n' % (DATA["scoring_quantity"]))
-    parFile.write('u:Sc/Dose/OutputWeightingFactor = So/ScalingFactor\n')
-    parFile.write('b:Sc/Dose/PreCalculateStoppingPowerRatios = "True"\n')
-    parFile.write('s:Sc/Dose/Component = "Patient/RTDoseGrid" \n')
-    parFile.write('s:Sc/Dose/IfOutputfileAlreadyExists = "Overwrite"\n')
-    parFile.write('s:Sc/Dose/OutputType = "%s" \n' % DATA["output_format"])
-    parFile.write('s:Sc/Dose/OutputFile = "./output/%s" \n' % (DATA["output_file"]))
-    parFile.write('\n')
+    if DATA["scoring_quantity"] == "PhaseSpace":
+        roinum = 0
+        parFile.write('# To score the phase space in a surface on a DICOM you need OpenTOPAS v4.2.2 or later\n')
+        for roi in DATA["ROIs_to_score"]:
+            roinum += 1
+            parFile.write('s:Sc/PhaseSpace%d/Quantity = "%s" \n' %(roinum,DATA["scoring_quantity"]))
+            parFile.write('b:Sc/PhaseSpace%d/OutputToConsole = "False" \n'%roinum)
+            parFile.write('s:Sc/PhaseSpace%d/Surface = "Patient/AnySurface" \n'%roinum) 
+            parFile.write('sv:Sc/PhaseSpace%d/OnlyIncludeIfInRTStructure = 1 "%s" \n' %(roinum,roi))
+            parFile.write('b:Sc/PhaseSpace%d/KillAfterPhaseSpace = "False"\n'%roinum)
+            parFile.write('s:Sc/PhaseSpace%d/IfOutputfileAlreadyExists = "Overwrite"\n'%roinum)
+            parFile.write('s:Sc/PhaseSpace%d/OutputType = "%s" \n' %(roinum, DATA["output_format"]))
+            parFile.write('s:Sc/PhaseSpace%d/OutputFile = "./output/%s_%s" \n' %(roinum, DATA["output_file"], roi))
+            parFile.write('\n')
+    else:
+        parFile.write('s:Sc/Dose/Quantity = "%s" \n' % (DATA["scoring_quantity"]))
+        parFile.write('u:Sc/Dose/OutputWeightingFactor = So/ScalingFactor\n')
+        parFile.write('b:Sc/Dose/PreCalculateStoppingPowerRatios = "True"\n')
+        parFile.write('s:Sc/Dose/Component = "Patient/RTDoseGrid" \n')
+        parFile.write('s:Sc/Dose/IfOutputfileAlreadyExists = "Overwrite"\n')
+        parFile.write('s:Sc/Dose/OutputType = "%s" \n' % DATA["output_format"])
+        parFile.write('s:Sc/Dose/OutputFile = "./output/%s" \n' % (DATA["output_file"]))
+        parFile.write('\n')
     parFile.write('d:Tf/TimeLineEnd = Tf/VirtualSimulationTimeEnd s\n')
     parFile.write('i:Tf/NumberOfSequentialTimes = Tf/VirtualSimulationNumberOfSequentialTimes\n')
     parFile.write('i:Ts/Seed = 1\n')

@@ -46,12 +46,14 @@ def EvaluateCorrectInputData(DATA):
         DATA["scoring_quantity"] = "DoseToWater"
     elif DATA["scoring_quantity"] == 'dosetomedium':
         DATA["scoring_quantity"] = "DoseToMedium"
+    elif DATA["scoring_quantity"] == 'phasespace':
+        DATA["scoring_quantity"] = "PhaseSpace"
     else:
         print("--- WARNING: No valid scoring quantity selected (%s) - DoseToMedium used by default" %DATA["scoring_quantity"])
         DATA["scoring_quantity"] = "DoseToMedium"
         warnings +=1
     
-    if DATA["output_format"] != "binary" and DATA["output_format"] != "csv" and DATA["output_format"] != "dicom" and DATA["output_format"] != "root" and DATA["output_format"] != "xml":
+    if DATA["output_format"] != "binary" and DATA["output_format"] != "csv" and DATA["output_format"] != "dicom" and DATA["output_format"] != "root" and DATA["output_format"] != "ascii" and DATA["output_format"] != "xml":
         print("--- WARNING: No valid Output Format selected (%s) - binary format used by default" %DATA["output_format"])
         DATA["output_format"] = "binary"
         warnings +=1
@@ -73,6 +75,8 @@ def EvaluateCorrectInputData(DATA):
     print("     (9) Scoring quantity:       %s" % DATA["scoring_quantity"])
     print("    (10) Output file name:       %s" % DATA["output_file"])
     print("    (11) Output format:          %s" % DATA["output_format"])
+    if DATA["scoring_quantity"] == "PhaseSpace":
+        print("    (12) ROIs to score:          %s" % DATA["ROIs_to_score"])
 
     return DATA
 
@@ -85,27 +89,86 @@ def EvaluateCorrectInputData(DATA):
 def InputDataInputFileMode(inputFile):
     inputInfo = open(inputFile,'r').read().split('\n')
     inputInfo = list(filter(None, inputInfo)) # filter empty lines
-    if len(inputInfo) != 11:
+    if len(inputInfo) != 13 and inputInfo[9].lower() == 'phasespace':
         print("######")
-        print('ERROR! %s arguments found in input file. %s arguments required' %(len(inputInfo),11))
+        print('ERROR! %s arguments found in input file. %s arguments required' %(len(inputInfo),13))
+        print("######")
+        printHelp()
+        exit(0)
+    elif len(inputInfo) != 12 and inputInfo[9].lower() != 'phasespace':
+        print("######")
+        print('ERROR! %s arguments found in input file. %s arguments required' %(len(inputInfo),12))
         print("######")
         printHelp()
         exit(0)
     
     DATA = {}
+    ROI_List = {}
     project_name_temp = inputInfo[0]
     DATA["project_name"]        = project_name_temp.replace(" ", "_")
-    DATA["dicom_dirname"]       = inputInfo[1]
-    DATA["RS_filename"]         = inputInfo[2] 
-    DATA["RD_filename"]         = inputInfo[3]
-    DATA["RP_filename"]         = inputInfo[4]
-    DATA["phsp_filename"]       = inputInfo[5]
-    DATA["MLC_model"]           = inputInfo[6].lower()
-    DATA["multipleUse"]         = inputInfo[7]
-    DATA["scoring_quantity"]    = inputInfo[8].lower()
-    output_file_temp = inputInfo[9]
+    DATA["OS"]                  = inputInfo[1]
+    DATA["dicom_dirname"]       = inputInfo[2]
+    DATA["RS_filename"]         = inputInfo[3] 
+    DATA["RD_filename"]         = inputInfo[4]
+    DATA["RP_filename"]         = inputInfo[5]
+    DATA["phsp_filename"]       = inputInfo[6]
+    DATA["MLC_model"]           = inputInfo[7].lower()
+    DATA["multipleUse"]         = inputInfo[8]
+    DATA["scoring_quantity"]    = inputInfo[9].lower() 
+    output_file_temp = inputInfo[10]
     DATA["output_file"]         = output_file_temp.replace(" ", "_")
-    DATA["output_format"]    = inputInfo[10].lower()
+    DATA["output_format"]    = inputInfo[11].lower()
+
+
+    if DATA["scoring_quantity"] == 'phasespace':
+        DATA["ROIs_to_score"]     = inputInfo[12].split(',')
+        for roi in DATA["ROIs_to_score"]:
+            newroi = roi.strip()
+            for letter in range(len(newroi)):
+                if newroi[letter] == ' ':
+                    newroi = newroi.replace(' ','_')
+                if '.' in newroi:
+                    newroi = newroi.replace('.','_')
+                if '+' in newroi:
+                    newroi = newroi.replace('+','_')
+            DATA["ROIs_to_score"][DATA["ROIs_to_score"].index(roi)] = newroi
+    
+        ds_RS = pydicom.dcmread(DATA["RS_filename"])
+        RoiGeometries = ds_RS.RTROIObservationsSequence
+        ROI_List = {}
+        for roi in RoiGeometries:
+            for region in ds_RS.StructureSetROISequence:
+                if region.ROINumber == roi.ReferencedROINumber:
+                    roiName = region.ROIName
+                    for letter in range(len(roiName)):
+                        if roiName[letter] == ' ':
+                            
+                            roiName = roiName.replace(' ','_')
+                        if '.' in roiName:
+                            roiName = roiName.replace('.','_')
+                        if '+' in roiName:
+                            roiName = roiName.replace('+','_')
+                    if len(roiName) > 16:
+                        roiName = roiName[:16]
+                        print("--- WARNING: The ROI %s has a name longer than 16 characters. The name will be truncated to %s. Please rename in structure set" %(roiName,roiName[:16]))
+                    ROI_List[region.ROINumber] = roiName
+
+    
+        for roi in DATA["ROIs_to_score"]:
+            score = 0 
+            for region in ds_RS.StructureSetROISequence:
+                if roi == ROI_List[region.ROINumber]:
+                    score = score + 1
+            if score == 0:
+                print("######")
+                print('ERROR! The ROI %s specified in the input file do not match the ROIs found in the DICOM-structure file'%roi)
+                print("######")
+                exit(0)
+            elif score > 1:
+                print("######")
+                print('ERROR! The ROI %s specified in the input file match multiple ROIs found in the DICOM-structure file'%roi)
+                print("######")
+                exit(0)
 
     return EvaluateCorrectInputData(DATA)
 
@@ -167,6 +230,21 @@ def InputDataInputGUIMode():
     projectName.set('Project_1')
     projectEntry = Entry(master=root, textvariable=projectName)
     projectEntry.grid(row=i, column=2)
+    ################
+    ################
+    i += 1
+    label13=StringVar()
+    label13.set("Operating System")
+    lbl13 = Label(master=root, textvariable=label13)
+    lbl13.grid(row=i, column=1)
+    OperatingSys = StringVar()
+    OperatingSys.set('select')
+    options = ["Linux/MacOS","Windows"]
+    OSentry = OptionMenu(root , OperatingSys , *options)
+    OSentry.grid(row=i, column=2)
+
+    lbl13 = Label()
+    lbl13.grid(row=i+1, column=1)
     ################
     ################
     i += 1
@@ -275,7 +353,7 @@ def InputDataInputGUIMode():
     lbl8.grid(row=i, column=1)
     Scoring = StringVar()
     Scoring.set('select')
-    options = ["DoseToWater", "DoseToMedium"]
+    options = ["DoseToWater", "DoseToMedium", "PhaseSpace"]
     scoringentry = OptionMenu(root , Scoring , *options)
     scoringentry.grid(row=i, column=2)
 
@@ -304,7 +382,7 @@ def InputDataInputGUIMode():
     lbl10.grid(row=i, column=1)
     outputFormat = StringVar()
     outputFormat.set('select')
-    options = ["binary", "DICOM", "csv", "root", "xml"]
+    options = ["binary", "DICOM", "csv", "root", "xml", "ASCII"]
     Outpytentry = OptionMenu(root , outputFormat , *options)
     Outpytentry.grid(row=i, column=2)
 
@@ -330,6 +408,7 @@ def InputDataInputGUIMode():
     DATA = {}
     project_name_temp = projectName.get()
     DATA["project_name"]        = project_name_temp.replace(" ", "_")
+    DATA["OS"]                  = OperatingSys.get().lower()
     DATA["dicom_dirname"]       = dicomDirectoryName.get()
     DATA["RS_filename"]         = dicomStructureFileName.get()
     DATA["RD_filename"]         = dicomDoseFileName.get()
@@ -341,7 +420,64 @@ def InputDataInputGUIMode():
     output_file_temp = outFileName.get()
     DATA["output_file"]         = output_file_temp.replace(" ", "_")
     DATA["output_format"]    = outputFormat.get().lower()
+    
+    
+    if DATA["scoring_quantity"] == "phasespace":
+        ds_RS = pydicom.dcmread(DATA["RS_filename"])
+        RoiGeometries = ds_RS.RTROIObservationsSequence
+        ROI_List = {}
+        for roi in RoiGeometries:
+            for region in ds_RS.StructureSetROISequence:
+                if region.ROINumber == roi.ReferencedROINumber:
+                    roiName = region.ROIName
+                    for letter in range(len(roiName)):
+                        if roiName[letter] == ' ':
+                            
+                            roiName = roiName.replace(' ','_')
+                        if '.' in roiName:
+                            roiName = roiName.replace('.','_')
+                        if '+' in roiName:
+                            roiName = roiName.replace('+','_')
+                    if len(roiName) > 16:
+                        roiName = roiName[:16]
+                    ROI_List[region.ROINumber] = roiName
+
+        DATA["ROIs_to_score"] = []
+        DATA["ROIs_to_score"] = ChooseROIs(ROI_List)
 
     return EvaluateCorrectInputData(DATA)
+############################################################################################################################################
+############################################################################################################################################
+############################################Choose ROIs to score from DICOM-structure file##################################################
+############################################################################################################################################
+############################################################################################################################################
 
+def ChooseROIs(ROI_List):
+    selected_ROIs = []
+    ROI_List = dict(sorted(ROI_List.items()))
+    def _quit_ROI():
+        nonlocal selected_ROIs
+        selected_ROIs = [ROI_List[i+1] for i in listbox.curselection()]
+        roi_root.quit()
+        roi_root.destroy() 
+        
+    global roi_root; roi_root = Tk()
+    roi_root.title("Select ROIs to score")
+    roi_root.geometry('180x200')
 
+    listbox = Listbox(roi_root, width=40,height=10, selectmode=MULTIPLE)
+    idx = 0
+    for key in ROI_List:
+        
+        listbox.insert(idx, ROI_List[key])
+        idx+=1
+    # print(ROI_List)
+    # print(selected_ROIs)
+    listbox.pack()
+
+    exitButton = Button(text="Confirm selection", command=_quit_ROI)
+    exitButton.pack()
+
+    mainloop()
+
+    return selected_ROIs
