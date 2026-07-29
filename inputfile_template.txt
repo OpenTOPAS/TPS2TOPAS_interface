@@ -9,5 +9,5 @@ MLC model: "generic", "genericHD", "Varian" or "VarianHD"
 Geometrical particle splitting factor (integer number)
 Scoring quantity: "DoseToWater" or "DoseToMedium
 Output file name
-Output file format: "binary", "DICOM", "csv", "root" or "xml"
+Output file format: "binary", "DICOM", "csv", "root", "ASCII", or "xml"
 ROI_Names (You can score multiple here, separated by commas)
